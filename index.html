@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1a6b3a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Presensi MISA">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Presensi MI Sultan Agung</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f0f4f0;min-height:100vh;overflow-x:hidden;padding-bottom:70px}
+:root{
+  --green:#1a6b3a;--green2:#2d8a50;--green-light:#e8f5ed;
+  --yellow:#f5c800;--yellow2:#e0b400;
+  --white:#fff;--gray:#6b7280;--gray2:#374151;--border:#d1d5db;
+  --red:#dc2626;--blue:#1e40af;--purple:#7c3aed;--brown:#b45309;--cyan:#0891b2;
+}
+
+/* HEADER */
+.app-header{background:var(--green);color:white;padding:12px 14px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.2)}
+.app-header img{width:38px;height:38px;border-radius:50%;background:white;padding:2px;object-fit:contain;flex-shrink:0}
+.app-header .title h1{font-size:15px;font-weight:700;line-height:1.2}
+.app-header .title p{font-size:10px;opacity:0.8}
+.app-header .badge{background:var(--yellow);color:#1a1a1a;font-size:11px;font-weight:700;padding:4px 8px;border-radius:20px;margin-left:auto;white-space:nowrap;flex-shrink:0}
+
+/* BOTTOM NAV */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:white;display:flex;border-top:1px solid var(--border);z-index:100;box-shadow:0 -2px 8px rgba(0,0,0,0.1)}
+.nav-btn{flex:1;padding:8px 4px 6px;text-align:center;cursor:pointer;border:none;background:none;color:var(--gray);font-size:10px;transition:all 0.2s}
+.nav-btn i{display:block;font-size:20px;margin-bottom:2px}
+.nav-btn.active{color:var(--green)}
+.nav-btn.active i{transform:scale(1.1)}
+
+/* PAGES */
+.page{display:none;padding:12px;animation:fadeIn 0.2s}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+/* CARDS */
+.card{background:white;border-radius:12px;padding:14px;margin-bottom:10px;border:1px solid var(--border)}
+.card-title{font-size:13px;font-weight:700;color:var(--gray2);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card-title i{font-size:16px}
+
+/* BUTTONS */
+.btn{padding:9px 14px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;transition:all 0.2s;touch-action:manipulation}
+.btn-primary{background:var(--green);color:white}
+.btn-yellow{background:var(--yellow);color:#1a1a1a}
+.btn-outline{background:white;color:var(--green);border:1.5px solid var(--green)}
+.btn-danger{background:var(--red);color:white}
+.btn-gray{background:#f3f4f6;color:var(--gray2);border:1px solid var(--border)}
+.btn-sm{padding:6px 10px;font-size:12px}
+.btn-block{width:100%;justify-content:center}
+.btn:active{opacity:0.8;transform:scale(0.98)}
+
+/* FORMS */
+.form-group{margin-bottom:10px}
+.form-group label{display:block;font-size:11px;font-weight:600;color:var(--gray);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.3px}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;outline:none;background:white}
+.form-group input:focus,.form-group select:focus{border-color:var(--green)}
+.form-group textarea{resize:vertical;min-height:60px}
+
+/* GRID */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+
+/* STAT BOXES */
+.stat-box{border-radius:10px;padding:10px;text-align:center}
+.stat-box .num{font-size:26px;font-weight:800;line-height:1}
+.stat-box .lbl{font-size:10px;font-weight:600;margin-top:2px}
+.stat-green{background:var(--green-light)}.stat-green .num{color:var(--green)}
+.stat-yellow{background:#fef9c3}.stat-yellow .num{color:#854d0e}
+.stat-gray{background:#f3f4f6}.stat-gray .num{color:var(--gray)}
+.stat-red{background:#fee2e2}.stat-red .num{color:var(--red)}
+
+/* SCANNER */
+.scanner-area{background:#111;border-radius:12px;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;position:relative;overflow:hidden;min-height:200px;max-height:280px}
+#reader{width:100%;height:100%;position:relative}
+#reader video{width:100%;height:100%;object-fit:cover;border-radius:12px}
+.scan-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.scan-frame{width:160px;height:160px;position:relative}
+.scan-frame::before,.scan-frame::after,.scan-corner-bl,.scan-corner-br{content:'';position:absolute;width:24px;height:24px;border-color:var(--yellow);border-style:solid}
+.scan-frame::before{top:0;left:0;border-width:3px 0 0 3px}
+.scan-frame::after{top:0;right:0;border-width:3px 3px 0 0}
+.scan-corner-bl{bottom:0;left:0;border-width:0 0 3px 3px}
+.scan-corner-br{bottom:0;right:0;border-width:0 3px 3px 0}
+.scan-line{position:absolute;width:140px;height:2px;background:linear-gradient(90deg,transparent,var(--yellow),transparent);animation:scanAnim 2s infinite}
+@keyframes scanAnim{0%{top:10px;opacity:0}10%{opacity:1}90%{opacity:1}100%{top:150px;opacity:0}}
+.cam-placeholder{text-align:center;padding:20px}
+.cam-placeholder i{font-size:48px;opacity:0.3;display:block;margin-bottom:8px}
+.cam-placeholder p{font-size:13px;opacity:0.6}
+
+/* RESULT */
+.student-result{border:2px solid var(--green);border-radius:12px;padding:12px;background:var(--green-light);display:flex;align-items:center;gap:10px}
+.student-avatar{width:44px;height:44px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;color:white;font-size:18px;font-weight:700;flex-shrink:0}
+.student-info h3{font-size:15px;font-weight:700}
+.student-info p{font-size:12px;color:var(--gray);margin-top:1px}
+
+/* BADGES */
+.badge{display:inline-block;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700}
+.badge-hadir{background:#dcfce7;color:#15803d}
+.badge-sakit{background:#fef9c3;color:#854d0e}
+.badge-izin{background:#dbeafe;color:#1d4ed8}
+.badge-alpa{background:#fee2e2;color:#991b1b}
+
+/* TABLES */
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:300px}
+th{background:#f9fafb;padding:7px 6px;text-align:left;font-size:10px;font-weight:700;color:var(--gray);border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:7px 6px;border-bottom:1px solid #f3f4f6;vertical-align:middle}
+tr:hover td{background:#f9fafb}
+
+/* ID CARD */
+.id-card{width:204px;height:323px;border-radius:14px;overflow:hidden;position:relative;font-family:'Segoe UI',system-ui,sans-serif;box-shadow:0 4px 20px rgba(0,0,0,0.2);flex-shrink:0}
+.id-card-header{padding:10px 10px 8px;text-align:center}
+.id-card-logo-row{display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:5px}
+.id-card-logo{width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,0.9);padding:1px;object-fit:contain;flex-shrink:0}
+.id-card-school{text-align:left}
+.id-card-school h4{font-size:7.5px;font-weight:800;color:white;line-height:1.2}
+.id-card-school p{font-size:6px;color:rgba(255,255,255,0.8)}
+.id-card-label{background:rgba(255,255,255,0.2);border-radius:4px;padding:2px 8px;display:inline-block;margin-top:2px}
+.id-card-label span{font-size:7px;font-weight:700;color:white;letter-spacing:1px}
+.id-card-body{background:white;padding:8px;text-align:center}
+.id-card-photo-wrap{width:70px;height:70px;margin:0 auto 6px;border-radius:8px;border:2px dashed #d1d5db;overflow:hidden;background:#f9fafb;display:flex;align-items:center;justify-content:center;position:relative}
+.id-card-photo-wrap img{width:100%;height:100%;object-fit:cover}
+.id-card-photo-placeholder{font-size:11px;color:#9ca3af;text-align:center;padding:4px}
+.id-card-name{font-size:11px;font-weight:800;color:#1f2937;margin-bottom:1px;line-height:1.2}
+.id-card-kelas{font-size:9.5px;color:#4b5563;margin-bottom:2px}
+.id-card-id{font-size:8.5px;color:#9ca3af;font-family:monospace;margin-bottom:6px;letter-spacing:0.5px}
+.id-card-qr{margin:0 auto;width:72px;height:72px}
+.id-card-footer{padding:5px;text-align:center}
+.id-card-footer span{font-size:7.5px;font-weight:700;color:rgba(255,255,255,0.9);letter-spacing:0.5px}
+
+/* COLOR SWATCHES */
+.color-swatches{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.swatch{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all 0.2s;flex-shrink:0}
+.swatch.active{border-color:#1f2937;transform:scale(1.2)}
+
+/* MANUAL ABSENT SELECTOR */
+.absent-btn-row{display:flex;gap:4px}
+.absent-btn{padding:5px 10px;border-radius:6px;border:1.5px solid var(--border);background:white;cursor:pointer;font-size:11px;font-weight:600;transition:all 0.2s;flex:1;text-align:center}
+.absent-btn.sel-sakit{background:#fef9c3;border-color:#f59e0b;color:#854d0e}
+.absent-btn.sel-izin{background:#dbeafe;border-color:#3b82f6;color:#1d4ed8}
+.absent-btn.sel-alpa{background:#fee2e2;border-color:#ef4444;color:#991b1b}
+.absent-btn.sel-hadir{background:#dcfce7;border-color:#22c55e;color:#15803d}
+
+/* UPLOAD AREA */
+.upload-area{border:2px dashed var(--border);border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:all 0.2s}
+.upload-area:hover{border-color:var(--green);background:var(--green-light)}
+.upload-area i{font-size:28px;color:var(--gray);display:block;margin-bottom:6px}
+.upload-area p{font-size:12px;color:var(--gray)}
+input[type=file]{display:none}
+
+/* TOAST */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1f2937;color:white;padding:10px 18px;border-radius:20px;font-size:13px;z-index:9999;display:flex;align-items:center;gap:8px;animation:toastIn 0.3s;white-space:nowrap;max-width:90vw;box-shadow:0 4px 12px rgba(0,0,0,0.3)}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+/* PROGRESS BAR */
+.progress-bar{height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;background:var(--green);border-radius:3px;transition:width 0.4s}
+
+/* MONTH NAV */
+.month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.month-nav button{background:none;border:none;cursor:pointer;color:var(--green);font-size:22px;padding:4px 8px;border-radius:6px}
+.month-nav span{font-weight:700;color:var(--gray2);font-size:14px}
+
+/* LIST ITEM */
+.list-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #f3f4f6}
+.list-avatar{width:32px;height:32px;border-radius:50%;background:var(--green-light);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--green);font-size:12px;flex-shrink:0}
+.list-info{flex:1;min-width:0}
+.list-info h4{font-size:13px;font-weight:600;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.list-info p{font-size:11px;color:var(--gray);margin:0}
+
+/* SECTION TITLE */
+.section-title{font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:0.5px;margin:14px 0 6px;display:flex;align-items:center;gap:6px}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* PRINT STYLES */
+@media print {
+  body{padding:0;background:white}
+  .bottom-nav,.app-header,.no-print{display:none!important}
+  .page{display:block!important;padding:0}
+  .print-cards-grid{display:flex;flex-wrap:wrap;gap:4mm;padding:4mm}
+  .id-card{break-inside:avoid;box-shadow:none;border:1px solid #ddd}
+}
+
+/* ICON FONT (Tabler) */
+@import url('https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css');
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="app-header">
+  <img id="logoImg" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" alt="Logo">
+  <div class="title">
+    <h1>Presensi MI Sultan Agung</h1>
+    <p id="headerSub">Tahun Pelajaran 2024/2025</p>
+  </div>
+  <div class="badge" id="todayBadge"></div>
+</div>
+
+<!-- PAGES -->
+<div class="page active" id="page-scan">
+  <!-- Scan harian -->
+  <div class="card">
+    <div class="card-title" style="color:var(--green)"><i class="ti ti-qrcode"></i> Scan QR Siswa</div>
+    <div class="form-group">
+      <label>Kelas (guru jam pertama)</label>
+      <select id="kelasGuru">
+        <option value="">-- Pilih Kelas --</option>
+      </select>
+    </div>
+    <div class="scanner-area" id="scannerBox">
+      <div class="cam-placeholder">
+        <i class="ti ti-camera"></i>
+        <p>Tap untuk aktifkan kamera</p>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn btn-primary" style="flex:1" onclick="startCamera()"><i class="ti ti-camera"></i> Aktifkan Kamera</button>
+      <button class="btn btn-gray" onclick="stopCamera()"><i class="ti ti-camera-off"></i></button>
+    </div>
+    <p style="font-size:11px;color:var(--gray);text-align:center;margin:6px 0">— atau input ID manual —</p>
+    <div style="display:flex;gap:6px">
+      <input type="text" id="manualIdInput" placeholder="Ketik ID Number siswa..." style="flex:1;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;outline:none" onkeydown="if(event.key==='Enter')scanById()">
+      <button class="btn btn-primary" onclick="scanById()"><i class="ti ti-arrow-right"></i></button>
+    </div>
+  </div>
+  <div id="scanResult"></div>
+  <div class="card">
+    <div class="card-title" style="color:var(--green)"><i class="ti ti-list-check"></i> Rekap Hari Ini</div>
+    <div class="grid-3" style="margin-bottom:10px">
+      <div class="stat-box stat-green"><div class="num" id="ctHadir">0</div><div class="lbl">Hadir</div></div>
+      <div class="stat-box stat-yellow"><div class="num" id="ctTdk">0</div><div class="lbl">Tidak Hadir</div></div>
+      <div class="stat-box stat-gray"><div class="num" id="ctBlm">0</div><div class="lbl">Belum</div></div>
+    </div>
+    <div id="listHariIni" style="max-height:220px;overflow-y:auto"></div>
+  </div>
+</div>
+
+<div class="page" id="page-manual">
+  <div class="card">
+    <div class="card-title" style="color:var(--red)"><i class="ti ti-user-x"></i> Input Ketidakhadiran</div>
+    <div class="form-group">
+      <label>Pilih Kelas</label>
+      <select id="kelasManual" onchange="loadManualList()">
+        <option value="">-- Pilih Kelas --</option>
+      </select>
+    </div>
+    <div id="manualList" style="max-height:420px;overflow-y:auto"></div>
+    <button class="btn btn-primary btn-block" style="margin-top:10px" onclick="saveManual()"><i class="ti ti-device-floppy"></i> Simpan</button>
+  </div>
+</div>
+
+<div class="page" id="page-rekap">
+  <div class="card">
+    <div class="card-title" style="color:var(--green)"><i class="ti ti-chart-bar"></i> Rekap Bulanan</div>
+    <div class="month-nav">
+      <button onclick="changeMonth(-1)">&#8249;</button>
+      <span id="monthLabel"></span>
+      <button onclick="changeMonth(1)">&#8250;</button>
+    </div>
+    <div class="form-group">
+      <label>Filter Kelas</label>
+      <select id="rekapKelas" onchange="renderRekap()"><option value="">Semua Kelas</option></select>
+    </div>
+    <div class="grid-3" style="margin-bottom:10px">
+      <div class="stat-box stat-green"><div class="num" id="rHadir">0</div><div class="lbl">Hadir</div></div>
+      <div class="stat-box stat-red"><div class="num" id="rAlpa">0</div><div class="lbl">Alpa</div></div>
+      <div class="stat-box stat-yellow"><div class="num" id="rSakit">0</div><div class="lbl">S+I</div></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Nama</th><th>Kelas</th><th>H</th><th>S</th><th>I</th><th>A</th><th>%</th></tr></thead>
+        <tbody id="rekapBody"></tbody>
+      </table>
+    </div>
+    <div style="display:flex;gap:6px;margin-top:10px">
+      <button class="btn btn-primary btn-sm" onclick="exportExcel()"><i class="ti ti-file-spreadsheet"></i> Excel</button>
+      <button class="btn btn-outline btn-sm" onclick="window.print()"><i class="ti ti-printer"></i> Print</button>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-idcard">
+  <div class="card">
+    <div class="card-title" style="color:var(--green)"><i class="ti ti-id"></i> Generate ID Card</div>
+    <div class="form-group">
+      <label>Siswa</label>
+      <select id="idcardSiswa" onchange="previewCard()"><option value="">-- Pilih Siswa --</option></select>
+    </div>
+    <div class="form-group">
+      <label>Warna Kartu</label>
+      <div class="color-swatches" id="colorSwatches"></div>
+    </div>
+    <div style="display:flex;justify-content:center;margin:10px 0">
+      <div id="cardPreview"></div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn btn-outline btn-sm" onclick="printAllCards()"><i class="ti ti-printer"></i> Print Semua</button>
+      <button class="btn btn-primary btn-sm" onclick="exportCardsExcel()"><i class="ti ti-file-spreadsheet"></i> Export List</button>
+    </div>
+  </div>
+  <!-- Print Area -->
+  <div id="printCardsArea" style="display:none"></div>
+</div>
+
+<div class="page" id="page-data">
+  <div class="card">
+    <div class="card-title" style="color:var(--green)"><i class="ti ti-upload"></i> Import Data Siswa</div>
+    <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" onchange="importExcel(this)">
+      <i class="ti ti-file-spreadsheet"></i>
+      <p><strong>Klik untuk upload</strong> Excel / CSV</p>
+      <p style="font-size:11px;margin-top:3px">Kolom: ID Number | Nama | Kelas</p>
+    </div>
+    <div style="display:flex;gap:6px;margin-top:8px">
+      <button class="btn btn-outline btn-sm" onclick="downloadTemplate()"><i class="ti ti-download"></i> Download Template</button>
+    </div>
+    <div id="importProgress" style="display:none;margin-top:8px">
+      <p style="font-size:12px;margin-bottom:4px" id="importStatus"></p>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="color:var(--green)"><i class="ti ti-users"></i> Daftar Siswa</div>
+    <div style="display:flex;gap:6px;margin-bottom:8px">
+      <input type="text" id="searchSiswa" placeholder="Cari nama / ID / kelas..." onkeyup="filterSiswa()" style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;outline:none">
+      <button class="btn btn-primary btn-sm" onclick="toggleAddForm()"><i class="ti ti-plus"></i></button>
+    </div>
+    <div id="addForm" style="display:none;background:#f9fafb;border-radius:8px;padding:10px;margin-bottom:8px">
+      <div class="grid-2">
+        <div class="form-group"><label>ID Number</label><input type="text" id="newId" placeholder="MISA0001"></div>
+        <div class="form-group"><label>Kelas</label><select id="newKelas"></select></div>
+      </div>
+      <div class="form-group"><label>Nama Lengkap</label><input type="text" id="newName" placeholder="Nama siswa..."></div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-primary btn-sm" onclick="addSiswa()"><i class="ti ti-check"></i> Simpan</button>
+        <button class="btn btn-gray btn-sm" onclick="toggleAddForm()">Batal</button>
+      </div>
+    </div>
+    <div id="siswaTable" style="max-height:360px;overflow-y:auto"></div>
+    <p id="siswaCount" style="font-size:11px;color:var(--gray);margin-top:6px"></p>
+  </div>
+</div>
+
+<div class="page" id="page-settings">
+  <div class="card">
+    <div class="card-title" style="color:var(--green)"><i class="ti ti-school"></i> Pengaturan Sekolah</div>
+    <div class="form-group"><label>Nama Sekolah</label><input type="text" id="setNama" onchange="saveSettings()"></div>
+    <div class="form-group"><label>Tahun Pelajaran</label><input type="text" id="setTahun" onchange="saveSettings()"></div>
+    <div class="form-group"><label>Alamat</label><input type="text" id="setAlamat" onchange="saveSettings()"></div>
+  </div>
+  <div class="card">
+    <div class="card-title" style="color:var(--green)"><i class="ti ti-layout-grid"></i> Manajemen Kelas</div>
+    <div id="kelasList" style="margin-bottom:8px"></div>
+    <div style="display:flex;gap:6px">
+      <input type="text" id="newKelasInput" placeholder="Nama kelas baru..." style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;outline:none">
+      <button class="btn btn-primary btn-sm" onclick="addKelas()"><i class="ti ti-plus"></i></button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title" style="color:var(--green)"><i class="ti ti-palette"></i> Warna Default Per Kelas</div>
+    <div id="classColorSettings"></div>
+  </div>
+  <div class="card">
+    <div class="card-title" style="color:var(--red)"><i class="ti ti-database"></i> Data & Backup</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn btn-outline btn-sm" onclick="backupData()"><i class="ti ti-archive"></i> Backup</button>
+      <button class="btn btn-danger btn-sm" onclick="resetPresensi()"><i class="ti ti-trash"></i> Reset Presensi</button>
+    </div>
+    <p style="font-size:11px;color:var(--gray);margin-top:6px">*Data siswa tidak akan terhapus saat reset presensi</p>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <button class="nav-btn active" id="tab-scan" onclick="showPage('scan')"><i class="ti ti-qrcode"></i>Scan</button>
+  <button class="nav-btn" id="tab-manual" onclick="showPage('manual')"><i class="ti ti-edit"></i>Manual</button>
+  <button class="nav-btn" id="tab-rekap" onclick="showPage('rekap')"><i class="ti ti-chart-bar"></i>Rekap</button>
+  <button class="nav-btn" id="tab-idcard" onclick="showPage('idcard')"><i class="ti ti-id"></i>ID Card</button>
+  <button class="nav-btn" id="tab-data" onclick="showPage('data')"><i class="ti ti-users"></i>Data</button>
+  <button class="nav-btn" id="tab-settings" onclick="showPage('settings')"><i class="ti ti-settings"></i>Setting</button>
+</div>
+
+<script>
+// ============================================================
+// KONFIGURASI
+// ============================================================
+const GAS_URL = ''; // ISI dengan URL Google Apps Script setelah deploy
+
+// Logo MISA (base64 pendek - akan diganti dengan base64 penuh)
+const LOGO_SRC = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQ==';
+
+const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+const COLOR_PRESETS = [
+  {c1:'#1a6b3a',c2:'#15803d',label:'Hijau'},
+  {c1:'#1e40af',c2:'#1d4ed8',label:'Biru'},
+  {c1:'#7c3aed',c2:'#6d28d9',label:'Ungu'},
+  {c1:'#b45309',c2:'#92400e',label:'Coklat'},
+  {c1:'#0891b2',c2:'#0e7490',label:'Cyan'},
+  {c1:'#be123c',c2:'#9f1239',label:'Merah'},
+  {c1:'#065f46',c2:'#047857',label:'Hijau Tua'},
+];
+
+// ============================================================
+// STATE
+// ============================================================
+let students = [];
+let attendance = {};
+let kelasData = [];
+let classColors = {};
+let settings = {sekolah:'MI Sultan Agung',tahun:'2024/2025',alamat:'Yogyakarta'};
+let currentCardColor = COLOR_PRESETS[0];
+let currentMonth = new Date().getMonth();
+let currentYear = new Date().getFullYear();
+let cameraStream = null;
+let scanInterval = null;
+let isScanning = false;
+
+// ============================================================
+// STORAGE
+// ============================================================
+function loadAll(){
+  students = JSON.parse(localStorage.getItem('misa_students')||'[]');
+  attendance = JSON.parse(localStorage.getItem('misa_attend')||'{}');
+  kelasData = JSON.parse(localStorage.getItem('misa_kelas')||'[]');
+  classColors = JSON.parse(localStorage.getItem('misa_colors')||'{}');
+  settings = JSON.parse(localStorage.getItem('misa_settings')||JSON.stringify(settings));
+  if(kelasData.length===0){
+    kelasData=['Kelas 1A','Kelas 1B','Kelas 2A','Kelas 2B','Kelas 3A','Kelas 3B',
+               'Kelas 4A','Kelas 4B','Kelas 5A','Kelas 5B','Kelas 6A','Kelas 6B'];
+    saveKelas();
+  }
+}
+function saveStudents(){localStorage.setItem('misa_students',JSON.stringify(students))}
+function saveAttend(){localStorage.setItem('misa_attend',JSON.stringify(attendance))}
+function saveKelas(){localStorage.setItem('misa_kelas',JSON.stringify(kelasData))}
+function saveColors(){localStorage.setItem('misa_colors',JSON.stringify(classColors))}
+function saveSettings(){
+  settings.sekolah=document.getElementById('setNama').value;
+  settings.tahun=document.getElementById('setTahun').value;
+  settings.alamat=document.getElementById('setAlamat').value;
+  localStorage.setItem('misa_settings',JSON.stringify(settings));
+  document.getElementById('headerSub').textContent=settings.tahun;
+  toast('Pengaturan disimpan','✅');
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function showPage(p){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.getElementById('tab-'+p).classList.add('active');
+  if(p!=='scan') stopCamera();
+  if(p==='rekap') renderRekap();
+  if(p==='data') renderSiswaTable();
+  if(p==='settings') renderSettings();
+  if(p==='idcard'){renderIDCard();populateCardSelect()}
+  if(p==='manual') loadManualList();
+}
+
+// ============================================================
+// SELECTS
+// ============================================================
+function populateAllSelects(){
+  ['kelasGuru','kelasManual','rekapKelas','newKelas'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    const cur=el.value;
+    const isAll=id==='rekapKelas';
+    el.innerHTML=isAll?'<option value="">Semua Kelas</option>':'<option value="">-- Pilih Kelas --</option>';
+    kelasData.forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=k;el.appendChild(o)});
+    if(cur) el.value=cur;
+  });
+}
+function populateCardSelect(){
+  const el=document.getElementById('idcardSiswa');
+  const cur=el.value;
+  el.innerHTML='<option value="">-- Pilih Siswa --</option>';
+  students.forEach(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=s.nama+' ('+s.kelas+')';el.appendChild(o)});
+  if(cur) el.value=cur;
+}
+
+// ============================================================
+// CAMERA & SCAN
+// ============================================================
+async function startCamera(){
+  const box=document.getElementById('scannerBox');
+  if(isScanning){toast('Kamera sudah aktif','📷');return}
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:640},height:{ideal:480}}});
+    cameraStream=stream;
+    isScanning=true;
+    const video=document.createElement('video');
+    video.srcObject=stream;
+    video.autoplay=true;
+    video.playsInline=true;
+    video.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:12px';
+    box.innerHTML='';
+    box.appendChild(video);
+    const overlay=document.createElement('div');
+    overlay.className='scan-overlay';
+    overlay.innerHTML='<div class="scan-frame"><div class="scan-corner-bl"></div><div class="scan-corner-br"></div><div class="scan-line"></div></div>';
+    box.appendChild(overlay);
+    // Try to use BarcodeDetector
+    if('BarcodeDetector' in window){
+      const bd=new BarcodeDetector({formats:['qr_code']});
+      const canvas=document.createElement('canvas');
+      const ctx=canvas.getContext('2d');
+      scanInterval=setInterval(async()=>{
+        if(video.readyState>=2){
+          canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+          ctx.drawImage(video,0,0);
+          try{
+            const codes=await bd.detect(canvas);
+            if(codes.length>0) processQR(codes[0].rawValue);
+          }catch(e){}
+        }
+      },500);
+    }else{
+      // Fallback: show manual input prompt
+      const hint=document.createElement('div');
+      hint.style.cssText='position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:11px;color:rgba(255,255,255,0.8)';
+      hint.textContent='Browser tidak support scan otomatis — gunakan input manual';
+      box.appendChild(hint);
+    }
+    toast('Kamera aktif','📷');
+  }catch(e){
+    box.innerHTML='<div class="cam-placeholder"><i class="ti ti-camera-off"></i><p>Tidak dapat mengakses kamera.<br>Gunakan input ID manual.</p></div>';
+    toast('Kamera gagal: '+e.message,'❌');
+  }
+}
+
+function stopCamera(){
+  if(cameraStream){cameraStream.getTracks().forEach(t=>t.stop());cameraStream=null}
+  if(scanInterval){clearInterval(scanInterval);scanInterval=null}
+  isScanning=false;
+  const box=document.getElementById('scannerBox');
+  box.innerHTML='<div class="cam-placeholder"><i class="ti ti-camera"></i><p>Tap untuk aktifkan kamera</p></div>';
+}
+
+function processQR(val){
+  const id=val.trim().toUpperCase();
+  const s=students.find(x=>x.id.toUpperCase()===id);
+  if(!s){toast('QR tidak dikenali: '+id,'❌');return}
+  recordAttendance(s);
+}
+
+function scanById(){
+  const val=document.getElementById('manualIdInput').value.trim().toUpperCase();
+  if(!val){toast('Ketik ID number dulu','⚠️');return}
+  const s=students.find(x=>x.id.toUpperCase()===val);
+  if(!s){toast('ID tidak ditemukan!','❌');return}
+  recordAttendance(s);
+  document.getElementById('manualIdInput').value='';
+}
+
+function recordAttendance(s){
+  const key=todayKey();
+  if(!attendance[key]) attendance[key]={};
+  if(attendance[key][s.id]){toast(s.nama+' sudah absen hari ini!','⚠️');return}
+  const waktu=new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+  attendance[key][s.id]={status:'hadir',waktu};
+  saveAttend();
+  document.getElementById('scanResult').innerHTML=`
+    <div class="student-result" style="margin-bottom:10px">
+      <div class="student-avatar">${s.nama.charAt(0)}</div>
+      <div class="student-info">
+        <h3>${s.nama}</h3>
+        <p>${s.kelas} · ${s.id}</p>
+        <p style="margin-top:3px"><span class="badge badge-hadir">✓ HADIR</span> <span style="font-size:11px;color:var(--gray)">${waktu}</span></p>
+      </div>
+    </div>`;
+  updateScanStats();
+  toast('✓ '+s.nama+' berhasil dicatat!','✅');
+  // Kirim ke GAS jika ada
+  if(GAS_URL) syncToGAS('scanPresensi',{id:s.id,tanggal:todayKey(),guru:document.getElementById('kelasGuru').value});
+}
+
+function todayKey(){
+  const d=new Date();
+  return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());
+}
+
+function updateScanStats(){
+  const key=todayKey();
+  const rec=attendance[key]||{};
+  const hadir=Object.values(rec).filter(v=>v.status==='hadir').length;
+  const tdk=Object.values(rec).filter(v=>v.status!=='hadir').length;
+  document.getElementById('ctHadir').textContent=hadir;
+  document.getElementById('ctTdk').textContent=tdk;
+  document.getElementById('ctBlm').textContent=Math.max(0,students.length-Object.keys(rec).length);
+  const entries=Object.entries(rec).slice(-8).reverse();
+  document.getElementById('listHariIni').innerHTML=entries.length===0
+    ?'<p style="font-size:12px;color:var(--gray);text-align:center;padding:10px">Belum ada presensi hari ini</p>'
+    :entries.map(([id,v])=>{
+      const s=students.find(x=>x.id===id)||{nama:id,kelas:'-'};
+      return `<div class="list-item">
+        <div class="list-avatar">${s.nama.charAt(0)}</div>
+        <div class="list-info"><h4>${s.nama}</h4><p>${s.kelas}</p></div>
+        <span class="badge badge-${v.status}">${v.status.toUpperCase()}</span>
+        <span style="font-size:11px;color:var(--gray);margin-left:4px">${v.waktu||''}</span>
+      </div>`;
+    }).join('');
+}
+
+// ============================================================
+// MANUAL ABSENCE
+// ============================================================
+function loadManualList(){
+  const kls=document.getElementById('kelasManual').value;
+  const key=todayKey();
+  const rec=attendance[key]||{};
+  const list=document.getElementById('manualList');
+  if(!kls){list.innerHTML='<p style="font-size:12px;color:var(--gray)">Pilih kelas terlebih dahulu</p>';return}
+  const siswa=students.filter(s=>s.kelas===kls);
+  if(siswa.length===0){list.innerHTML='<p style="font-size:12px;color:var(--gray)">Belum ada siswa di kelas ini</p>';return}
+  list.innerHTML=siswa.map(s=>{
+    const cur=(rec[s.id]||{}).status||'';
+    return `<div class="list-item" style="align-items:flex-start;flex-direction:column;gap:4px;padding:8px 0">
+      <div style="display:flex;align-items:center;gap:8px;width:100%">
+        <div class="list-avatar">${s.nama.charAt(0)}</div>
+        <div class="list-info"><h4>${s.nama}</h4><p>${s.id}</p></div>
+      </div>
+      <div class="absent-btn-row" style="padding-left:40px;width:100%">
+        ${['hadir','sakit','izin','alpa'].map(st=>`<button class="absent-btn ${cur===st?'sel-'+st:''}" onclick="markAbsent('${s.id}','${st}',this)">${st.charAt(0).toUpperCase()+st.slice(1)}</button>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function markAbsent(id,status,btn){
+  const key=todayKey();
+  if(!attendance[key]) attendance[key]={};
+  attendance[key][id]={status,waktu:new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})};
+  saveAttend();
+  // Update UI
+  const row=btn.closest('.list-item');
+  row.querySelectorAll('.absent-btn').forEach(b=>{
+    b.className='absent-btn';
+    const st=b.textContent.toLowerCase();
+    if(st===status) b.classList.add('sel-'+status);
+  });
+  updateScanStats();
+}
+
+function saveManual(){
+  saveAttend();
+  toast('Presensi manual tersimpan!','✅');
+  if(GAS_URL) syncManualToGAS();
+}
+
+// ============================================================
+// REKAP
+// ============================================================
+function changeMonth(d){
+  currentMonth+=d;
+  if(currentMonth>11){currentMonth=0;currentYear++}
+  if(currentMonth<0){currentMonth=11;currentYear--}
+  renderRekap();
+}
+
+function renderRekap(){
+  const kls=document.getElementById('rekapKelas').value;
+  document.getElementById('monthLabel').textContent=MONTHS[currentMonth]+' '+currentYear;
+  const filtered=kls?students.filter(s=>s.kelas===kls):students;
+  let tH=0,tS=0,tI=0,tA=0;
+  const rows=filtered.map(s=>{
+    let h=0,sk=0,iz=0,al=0;
+    Object.entries(attendance).forEach(([dk,drec])=>{
+      const [y,m]=dk.split('-');
+      if(+y===currentYear&&+m-1===currentMonth){
+        const v=drec[s.id];
+        if(v){if(v.status==='hadir')h++;else if(v.status==='sakit')sk++;else if(v.status==='izin')iz++;else if(v.status==='alpa')al++;}
+      }
+    });
+    tH+=h;tS+=sk;tI+=iz;tA+=al;
+    const tot=h+sk+iz+al;
+    const pct=tot>0?Math.round(h/tot*100):0;
+    return `<tr>
+      <td style="font-weight:600">${s.nama}</td>
+      <td><span class="badge badge-hadir" style="font-size:9px">${s.kelas}</span></td>
+      <td style="color:var(--green);font-weight:700">${h}</td>
+      <td>${sk}</td><td>${iz}</td>
+      <td style="color:var(--red)">${al}</td>
+      <td>${pct}%</td>
+    </tr>`;
+  });
+  document.getElementById('rHadir').textContent=tH;
+  document.getElementById('rAlpa').textContent=tA;
+  document.getElementById('rSakit').textContent=tS+tI;
+  document.getElementById('rekapBody').innerHTML=rows.join('');
+}
+
+function exportExcel(){
+  const kls=document.getElementById('rekapKelas').value;
+  const filtered=kls?students.filter(s=>s.kelas===kls):students;
+  const data=[['Nama','Kelas','Hadir','Sakit','Izin','Alpa','%']];
+  filtered.forEach(s=>{
+    let h=0,sk=0,iz=0,al=0;
+    Object.entries(attendance).forEach(([dk,drec])=>{
+      const [y,m]=dk.split('-');
+      if(+y===currentYear&&+m-1===currentMonth){
+        const v=drec[s.id];
+        if(v){if(v.status==='hadir')h++;else if(v.status==='sakit')sk++;else if(v.status==='izin')iz++;else if(v.status==='alpa')al++;}
+      }
+    });
+    const tot=h+sk+iz+al;
+    data.push([s.nama,s.kelas,h,sk,iz,al,tot>0?Math.round(h/tot*100)+'%':'0%']);
+  });
+  const ws=XLSX.utils.aoa_to_sheet(data);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Rekap '+MONTHS[currentMonth]+' '+currentYear);
+  XLSX.writeFile(wb,'Rekap_Presensi_'+MONTHS[currentMonth]+'_'+currentYear+'.xlsx');
+  toast('File Excel diunduh!','📊');
+}
+
+// ============================================================
+// ID CARD
+// ============================================================
+function buildColorSwatches(){
+  const wrap=document.getElementById('colorSwatches');
+  wrap.innerHTML=COLOR_PRESETS.map((cp,i)=>`
+    <div class="swatch ${i===0?'active':''}" style="background:${cp.c1}" title="${cp.label}" onclick="selectColor(${i},this)"></div>
+  `).join('');
+}
+
+function selectColor(i,el){
+  document.querySelectorAll('.swatch').forEach(x=>x.classList.remove('active'));
+  el.classList.add('active');
+  currentCardColor=COLOR_PRESETS[i];
+  previewCard();
+}
+
+function previewCard(){
+  const id=document.getElementById('idcardSiswa').value;
+  const s=id?students.find(x=>x.id===id):students[0];
+  if(!s){document.getElementById('cardPreview').innerHTML='<p style="font-size:12px;color:var(--gray)">Pilih siswa untuk preview</p>';return}
+  renderSingleCard(s,document.getElementById('cardPreview'));
+}
+
+function renderSingleCard(s,container){
+  const {c1,c2}=currentCardColor||getClassColor(s.kelas);
+  container.innerHTML='';
+  const card=document.createElement('div');
+  card.className='id-card';
+  card.innerHTML=`
+    <div class="id-card-header" style="background:linear-gradient(135deg,${c1},${c2})">
+      <div class="id-card-logo-row">
+        <img class="id-card-logo" src="${LOGO_SRC}" alt="Logo" onerror="this.style.display='none'">
+        <div class="id-card-school">
+          <h4>${settings.sekolah||'MI Sultan Agung'}</h4>
+          <p>${settings.alamat||'Yogyakarta'}</p>
+        </div>
+      </div>
+      <div class="id-card-label"><span>KARTU PELAJAR</span></div>
+    </div>
+    <div class="id-card-body">
+      <div class="id-card-photo-wrap">
+        <div class="id-card-photo-placeholder">📷<br><span style="font-size:9px">Tempel Foto</span></div>
+      </div>
+      <div class="id-card-name">${s.nama}</div>
+      <div class="id-card-kelas">${s.kelas}</div>
+      <div class="id-card-id">${s.id}</div>
+      <div id="qr_${s.id.replace(/[^a-z0-9]/gi,'_')}" class="id-card-qr"></div>
+    </div>
+    <div class="id-card-footer" style="background:${c2}">
+      <span>T.P. ${settings.tahun||'2024/2025'}</span>
+    </div>`;
+  container.appendChild(card);
+  // Generate QR
+  const qrId='qr_'+s.id.replace(/[^a-z0-9]/gi,'_');
+  try{
+    new QRCode(document.getElementById(qrId),{text:s.id,width:72,height:72,colorDark:'#1f2937',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+  }catch(e){document.getElementById(qrId).textContent='QR Error'}
+}
+
+function getClassColor(kls){
+  const hex=classColors[kls];
+  if(hex){const cp=COLOR_PRESETS.find(x=>x.c1===hex);return cp||COLOR_PRESETS[0]}
+  // Auto assign by index
+  const idx=kelasData.indexOf(kls)%COLOR_PRESETS.length;
+  return COLOR_PRESETS[Math.max(0,idx)];
+}
+
+function renderIDCard(){
+  buildColorSwatches();
+  previewCard();
+}
+
+function printAllCards(){
+  const area=document.getElementById('printCardsArea');
+  area.innerHTML='<div class="print-cards-grid">';
+  students.forEach(s=>{
+    const wrap=document.createElement('div');
+    const savedColor=currentCardColor;
+    currentCardColor=getClassColor(s.kelas);
+    renderSingleCard(s,wrap);
+    currentCardColor=savedColor;
+    area.querySelector('.print-cards-grid').appendChild(wrap);
+  });
+  area.style.display='block';
+  setTimeout(()=>{window.print();area.style.display='none'},500);
+}
+
+function exportCardsExcel(){
+  const data=[['ID Number','Nama','Kelas'],...students.map(s=>[s.id,s.nama,s.kelas])];
+  const ws=XLSX.utils.aoa_to_sheet(data);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Siswa');
+  XLSX.writeFile(wb,'Daftar_Siswa_MISA.xlsx');
+  toast('Daftar siswa diunduh!','📊');
+}
+
+// ============================================================
+// DATA SISWA
+// ============================================================
+function importExcel(input){
+  const file=input.files[0];
+  if(!file) return;
+  document.getElementById('importProgress').style.display='block';
+  document.getElementById('importStatus').textContent='Membaca file...';
+  document.getElementById('progressFill').style.width='20%';
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'binary'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1});
+      const existing=new Set(students.map(s=>String(s.id)));
+      let added=0;
+      rows.slice(1).forEach((row,i)=>{
+        document.getElementById('progressFill').style.width=(20+Math.round(i/rows.length*70))+'%';
+        if(row[0]&&row[1]&&row[2]){
+          const id=String(row[0]).trim();
+          if(!existing.has(id)){
+            students.push({id,nama:String(row[1]).trim(),kelas:String(row[2]).trim()});
+            existing.add(id);
+            added++;
+          }
+        }
+      });
+      saveStudents();
+      populateAllSelects();
+      renderSiswaTable();
+      document.getElementById('progressFill').style.width='100%';
+      document.getElementById('importStatus').textContent=added+' siswa berhasil diimport!';
+      toast(added+' siswa diimport!','✅');
+    }catch(e){
+      document.getElementById('importStatus').textContent='Error: '+e.message;
+      toast('Gagal baca file!','❌');
+    }
+    input.value='';
+  };
+  reader.readAsBinaryString(file);
+}
+
+function downloadTemplate(){
+  const ws=XLSX.utils.aoa_to_sheet([['ID Number','Nama Siswa','Kelas'],['MISA0001','Ahmad Fauzi','Kelas 1A'],['MISA0002','Budi Santoso','Kelas 1B']]);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Template');
+  XLSX.writeFile(wb,'Template_Import_Siswa.xlsx');
+  toast('Template diunduh!','✅');
+}
+
+function filterSiswa(){renderSiswaTable()}
+
+function renderSiswaTable(){
+  const q=(document.getElementById('searchSiswa')||{}).value?.toLowerCase()||'';
+  const filtered=students.filter(s=>s.nama.toLowerCase().includes(q)||s.kelas.toLowerCase().includes(q)||s.id.toLowerCase().includes(q));
+  document.getElementById('siswaTable').innerHTML=`<table>
+    <thead><tr><th>ID</th><th>Nama</th><th>Kelas</th><th></th></tr></thead>
+    <tbody>${filtered.map(s=>`<tr>
+      <td style="font-family:monospace;font-size:11px">${s.id}</td>
+      <td style="font-weight:600">${s.nama}</td>
+      <td><span class="badge badge-hadir" style="font-size:10px">${s.kelas}</span></td>
+      <td><button class="btn btn-danger btn-sm" style="padding:3px 8px" onclick="deleteSiswa('${s.id}')"><i class="ti ti-trash"></i></button></td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+  document.getElementById('siswaCount').textContent='Total: '+filtered.length+' siswa';
+  populateAllSelects();populateCardSelect();
+}
+
+function toggleAddForm(){
+  const f=document.getElementById('addForm');
+  const visible=f.style.display!=='none';
+  f.style.display=visible?'none':'block';
+  if(!visible){
+    const nextId='MISA'+String(students.length+1).padStart(4,'0');
+    document.getElementById('newId').value=nextId;
+    document.getElementById('newName').value='';
+    populateAllSelects();
+  }
+}
+
+function addSiswa(){
+  const id=document.getElementById('newId').value.trim()||'MISA'+String(students.length+1).padStart(4,'0');
+  const nama=document.getElementById('newName').value.trim();
+  const kelas=document.getElementById('newKelas').value;
+  if(!nama||!kelas){toast('Isi nama dan kelas!','❌');return}
+  if(students.find(s=>s.id===id)){toast('ID sudah ada!','❌');return}
+  students.push({id,nama,kelas});
+  saveStudents();
+  renderSiswaTable();
+  document.getElementById('addForm').style.display='none';
+  toast('Siswa ditambahkan!','✅');
+}
+
+function deleteSiswa(id){
+  if(!confirm('Hapus siswa ini?')) return;
+  students=students.filter(s=>s.id!==id);
+  saveStudents();
+  renderSiswaTable();
+  toast('Siswa dihapus','✅');
+}
+
+// ============================================================
+// SETTINGS
+// ============================================================
+function renderSettings(){
+  document.getElementById('setNama').value=settings.sekolah||'';
+  document.getElementById('setTahun').value=settings.tahun||'';
+  document.getElementById('setAlamat').value=settings.alamat||'';
+  // Kelas list
+  document.getElementById('kelasList').innerHTML=kelasData.map(k=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 8px;background:#f9fafb;border-radius:6px;margin-bottom:3px">
+      <span style="font-size:13px">${k}</span>
+      <button class="btn btn-danger btn-sm" style="padding:3px 8px" onclick="deleteKelas('${k}')"><i class="ti ti-trash"></i></button>
+    </div>`).join('');
+  // Color settings
+  document.getElementById('classColorSettings').innerHTML=kelasData.map(kls=>`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <span style="font-size:12px;width:80px;flex-shrink:0">${kls}</span>
+      <div style="display:flex;gap:4px">
+        ${COLOR_PRESETS.map((cp,i)=>`<div onclick="setClassColor('${kls}','${cp.c1}')" style="width:20px;height:20px;border-radius:50%;background:${cp.c1};cursor:pointer;border:2px solid ${(classColors[kls]||COLOR_PRESETS[kelasData.indexOf(kls)%COLOR_PRESETS.length].c1)===cp.c1?'#1f2937':'transparent'}"></div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function addKelas(){
+  const v=document.getElementById('newKelasInput').value.trim();
+  if(!v||kelasData.includes(v)){toast('Nama kelas kosong atau sudah ada!','❌');return}
+  kelasData.push(v);
+  saveKelas();
+  populateAllSelects();
+  renderSettings();
+  document.getElementById('newKelasInput').value='';
+  toast('Kelas ditambahkan!','✅');
+}
+
+function deleteKelas(k){
+  if(!confirm('Hapus kelas '+k+'?')) return;
+  kelasData=kelasData.filter(x=>x!==k);
+  saveKelas();
+  populateAllSelects();
+  renderSettings();
+}
+
+function setClassColor(kls,c1){
+  classColors[kls]=c1;
+  saveColors();
+  renderSettings();
+}
+
+function backupData(){
+  const data={students,attendance,kelasData,classColors,settings,exported:new Date().toISOString()};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='backup_presensi_misa_'+todayKey()+'.json';a.click();
+  toast('Backup diunduh!','💾');
+}
+
+function resetPresensi(){
+  if(!confirm('Reset semua data presensi? Data siswa tetap aman.')) return;
+  attendance={};
+  saveAttend();
+  updateScanStats();
+  renderRekap();
+  toast('Data presensi direset!','✅');
+}
+
+// ============================================================
+// GAS SYNC (jika URL tersedia)
+// ============================================================
+async function syncToGAS(action,data){
+  if(!GAS_URL) return;
+  try{
+    await fetch(GAS_URL+'?action='+action,{method:'POST',body:JSON.stringify(data)});
+  }catch(e){console.warn('GAS sync error:',e)}
+}
+
+async function syncManualToGAS(){
+  if(!GAS_URL) return;
+  const key=todayKey();
+  const rec=attendance[key]||{};
+  const kls=document.getElementById('kelasManual').value;
+  const data=students.filter(s=>s.kelas===kls).map(s=>({
+    id:s.id,nama:s.nama,kelas:s.kelas,status:(rec[s.id]||{}).status||'',
+  })).filter(d=>d.status);
+  syncToGAS('manualPresensi',{data,tanggal:key,guru:kls});
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function pad2(n){return String(n).padStart(2,'0')}
+
+function toast(msg,icon='ℹ️'){
+  document.querySelectorAll('.toast').forEach(t=>t.remove());
+  const t=document.createElement('div');
+  t.className='toast';
+  t.innerHTML=`<span>${icon}</span><span>${msg}</span>`;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),2800);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+function init(){
+  loadAll();
+  // Set logo
+  const logoFile='logo_MISA.png'; // Ganti jika nama file berbeda
+  document.getElementById('logoImg').src=logoFile;
+  // Header info
+  document.getElementById('todayBadge').textContent=new Date().toLocaleDateString('id-ID',{day:'numeric',month:'short'});
+  document.getElementById('headerSub').textContent='T.P. '+settings.tahun;
+  // Populate
+  populateAllSelects();
+  renderSiswaTable();
+  updateScanStats();
+  renderIDCard();
+  // Settings
+  document.getElementById('setNama').value=settings.sekolah||'MI Sultan Agung';
+  document.getElementById('setTahun').value=settings.tahun||'2024/2025';
+  document.getElementById('setAlamat').value=settings.alamat||'Yogyakarta';
+  document.getElementById('monthLabel').textContent=MONTHS[currentMonth]+' '+currentYear;
+  // Service Worker
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('sw.js').catch(e=>console.log('SW:',e));
+  }
+  // Load logo MISA asli (base64 di atas hanya placeholder)
+  const img=new Image();
+  img.onload=()=>{document.getElementById('logoImg').src=img.src};
+  img.src=logoFile;
+}
+
+window.addEventListener('load',init);
+</script>
+</body>
+</html>
